@@ -76,6 +76,4 @@ public class RecipesAdapter extends RecyclerView.Adapter<RecipesAdapter.ViewHold
         this.mRecipes=recipes;
         this.notifyDataSetChanged();
     }
-
-
 }

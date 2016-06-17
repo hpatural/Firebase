@@ -7,8 +7,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+
 
 /**
  * Created by hpatural on 09/06/2016.
@@ -24,6 +23,10 @@ public class FirebaseDatabaseUtils {
     }
 
 
+    /***
+     * Get all the recipes from Firebase Database
+     * @param callback
+     */
     public void getRecipes(final GetResultsCallback callback){
         DatabaseReference myRef = mFirebaseDatabase.getReference(RECIPES_FIREBASE_REFERENCE);
 
@@ -35,7 +38,7 @@ public class FirebaseDatabaseUtils {
                 //System.out.println("There are " + dataSnapshot.getChildrenCount() + " blog posts");
                 for (DataSnapshot postSnapshot: dataSnapshot.getChildren()) {
                     Recipe recipe = postSnapshot.getValue(Recipe.class);
-                    recipe.setId(dataSnapshot.getKey());
+                    recipe.setId(postSnapshot.getKey());
                     recipes.add(recipe);
                 }
                 callback.onSuccess(recipes);
@@ -48,16 +51,34 @@ public class FirebaseDatabaseUtils {
         });
     }
 
-    public void saveRecipe(Recipe recipe){
+    /***
+     * Save a recipe in firebase
+     * @param recipe
+     * @param callback
+     */
+    public void saveRecipe(final Recipe recipe, final SaveRecipesCallback callback){
         DatabaseReference myRef = mFirebaseDatabase.getReference(RECIPES_FIREBASE_REFERENCE);
-        myRef.push().setValue(recipe);
-
+        //Push creates a generated Id
+        myRef.push().setValue(recipe, new DatabaseReference.CompletionListener() {
+            @Override
+            public void onComplete(DatabaseError databaseError, DatabaseReference databaseReference) {
+                if(databaseError==null){
+                    recipe.setId(databaseReference.getKey());
+                    callback.onSuccess();
+                }else{
+                    callback.onError(databaseError);
+                }
+            }
+        });
     }
-
-
 
     public interface GetResultsCallback{
         void onSuccess(ArrayList<Recipe> recipes);
+        void onError(DatabaseError databaseError);
+    }
+
+    public interface SaveRecipesCallback{
+        void onSuccess();
         void onError(DatabaseError databaseError);
     }
 }

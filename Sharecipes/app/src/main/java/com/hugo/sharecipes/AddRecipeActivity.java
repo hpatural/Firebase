@@ -25,6 +25,9 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.storage.FirebaseStorage;
+
 import java.util.ArrayList;
 
 /**
@@ -56,14 +59,24 @@ public class AddRecipeActivity extends AppCompatActivity {
             public void onClick(View v) {
 
                 if (checkFields()) {
-                    Recipe recipe = new Recipe();
+                    final Recipe recipe = new Recipe();
                     recipe.setDescription(mDescription.getText().toString());
                     recipe.setTitle(mTitle.getText().toString());
                     FirebaseDatabaseUtils firebaseDatabaseUtils = new FirebaseDatabaseUtils();
-                    firebaseDatabaseUtils.saveRecipe(recipe);
-                    recipeAdded();
+                    firebaseDatabaseUtils.saveRecipe(recipe, new FirebaseDatabaseUtils.SaveRecipesCallback() {
+                        @Override
+                        public void onSuccess() {
+                            recipeAdded();
+                            System.out.println(recipe.getId());
+                            sendImage(recipe.getId());
+                        }
 
-
+                        @Override
+                        public void onError(DatabaseError databaseError) {
+                            Toast.makeText(getApplicationContext(), "An error occured during saving datas !",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
                 }else{
                     Toast.makeText(getApplicationContext(), "Please fill all the blanks !",
                             Toast.LENGTH_LONG).show();
@@ -77,7 +90,6 @@ public class AddRecipeActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (isStoragePermissionGranted()) {
-                    Log.v("a","Permission is granted");
                     Intent i = new Intent(Intent.ACTION_PICK,android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                     startActivityForResult(i, RESULT_LOAD_IMAGE);
                 }else{
@@ -91,6 +103,7 @@ public class AddRecipeActivity extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), "The recipe has been correctly added !", Toast.LENGTH_LONG).show();
         mTitle.setText("");
         mDescription.setText("");
+        mPictureImageView.setImageBitmap(null);
     }
 
     private boolean checkFields(){
@@ -124,7 +137,6 @@ public class AddRecipeActivity extends AppCompatActivity {
         return scaled;
     }
 
-
     public boolean isStoragePermissionGranted() {
         System.out.println("isStoragePermissionGranted : ");
         if (Build.VERSION.SDK_INT >= 23) {
@@ -152,5 +164,10 @@ public class AddRecipeActivity extends AppCompatActivity {
             System.out.println("onRequestPermissionsResult : "+permissions[0]+ "was "+grantResults[0]);
             //resume tasks needing this permission
         }
+    }
+
+    public void sendImage(String imageName){
+        FirebaseStorageUtils firebaseStorageUtils = new FirebaseStorageUtils(getApplicationContext());
+        firebaseStorageUtils.sendImage(mPicturePath, imageName);
     }
 }
